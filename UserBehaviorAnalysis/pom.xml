@@ -13,6 +13,7 @@
         <module>NetworkFlowAnalysis</module>
     </modules>
 
+    <!-- 定义版本信息 -->
     <properties>
         <flink.version>1.7.2</flink.version>
         <scala.binary.version>2.11</scala.binary.version>
