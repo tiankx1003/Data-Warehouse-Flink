@@ -8,7 +8,9 @@
         <outputRelativeToContentRoot value="true" />
         <module name="HotItemsAnalysis" />
         <module name="NetworkFlowAnalysis" />
+        <module name="OrderTimeoutDetect" />
         <module name="MarketAnalysis" />
+        <module name="LoginFailDetect" />
       </profile>
     </annotationProcessing>
   </component>
