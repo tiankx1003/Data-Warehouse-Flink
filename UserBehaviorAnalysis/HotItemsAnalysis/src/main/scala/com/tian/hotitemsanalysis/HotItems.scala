@@ -20,6 +20,12 @@ import org.apache.flink.util.Collector
 import scala.collection.mutable.ListBuffer
 
 /**
+ * 每隔5分钟输出最近一小时内点击量最多的前N个商品
+ * 1. 抽取出业务时间戳，告诉Flink框架基于业务时间做窗口
+ * 2. 过滤出点击行为数据
+ * 3. 按一小时的窗口大小，每5分钟一次，做滑动窗口聚合(Sliding Window)
+ * 4. 按每个窗口聚合，输出每个窗口中点击量前N名的成员
+ *
  * @author tian
  * @date 2019/10/24 11:14
  * @version 1.0.0
@@ -45,18 +51,19 @@ object HotItems {
 
         val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-        env.setParallelism(1)
+        env.setParallelism(8)
         val stream: DataStream[String] = env
-            //.readTextFile("YOUR_PATH\\resources\\UserBehavior.csv")
+            .readTextFile("files/UserBehavior.csv")
             //更换为Kafka数据源
-            .addSource(new FlinkKafkaConsumer[String]("hotitems", new SimpleStringSchema(), properties))
+            //.addSource(new FlinkKafkaConsumer[String]("hotitems", new SimpleStringSchema(), properties))
             .map(line => {
                 val linearray: Array[String] = line.split(",")
                 UserBehavior(linearray(0).toLong, linearray(1).toLong, linearray(2).toInt, linearray(3), linearray(4).toLong)
             })
             .assignAscendingTimestamps(_.timestamp * 1000)
+            //原始数据中有多种用户行为
             .filter(_.behavior == "pv")
-            .keyBy("itemId")
+            .keyBy(_.itemId) //使用.keyBy("itemId")时返回JavaTuple，之后获取Tuple的元素过于复杂
             .timeWindow(Time.minutes(60), Time.minutes(5))
             .aggregate(new CountAgg(), new WindowResultFunction())
             .keyBy(1)
@@ -75,22 +82,18 @@ object HotItems {
         override def getResult(acc: Long): Long = acc
 
         override def merge(acc1: Long, acc2: Long): Long = acc1 + acc2
+
     }
 
     // 用于输出窗口的结果
-    class WindowResultFunction extends WindowFunction[Long, ItemViewCount, Tuple, TimeWindow] {
-        override def apply(key: Tuple, window: TimeWindow, aggregateResult: Iterable[Long],
-                           collector: Collector[ItemViewCount]): Unit = {
-            val itemId: Long = key.asInstanceOf[Tuple1[Long]]._1 // TODO: .f0
-            val count: Long = aggregateResult.iterator.next
-            collector.collect(ItemViewCount(itemId, window.getEnd, count))
-        }
-
-
+    class WindowResultFunction extends WindowFunction[Long, ItemViewCount, Long, TimeWindow] {
+        override def apply(key: Long, window: TimeWindow, input: Iterable[Long], out: Collector[ItemViewCount]): Unit =
+            out.collect(ItemViewCount(key, window.getEnd, input.iterator.next()))
     }
 
     // 求某个窗口中前 N 名的热门点击商品，key 为窗口时间戳，输出为 TopN 的结果字符串
     class TopNHotItems(topSize: Int) extends KeyedProcessFunction[Tuple, ItemViewCount, String] {
+        //定义一个列表状态，用于保存所有的商品个数统计值
         private var itemState: ListState[ItemViewCount] = _
 
         override def open(parameters: Configuration): Unit = {
