@@ -2,10 +2,12 @@ package com.tian.networkanalysis.app
 
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
+import java.util
+import java.util.Map
 
 import com.tian.networkanalysis.bean.{ApacheLogEvent, UrlViewCount}
 import org.apache.flink.api.common.functions.AggregateFunction
-import org.apache.flink.api.common.state.{ListState, ListStateDescriptor}
+import org.apache.flink.api.common.state.{ListState, ListStateDescriptor, MapState, MapStateDescriptor}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction
@@ -16,6 +18,7 @@ import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
 import org.apache.flink.streaming.api.scala._
+
 import scala.collection.mutable.ListBuffer
 import scala.util.matching.Regex
 
@@ -76,20 +79,22 @@ object NetworkFlow {
     }
 
     class TopHotUrls(topSize: Int) extends KeyedProcessFunction[Long, UrlViewCount, String] {
-        private var urlState: ListState[UrlViewCount] = _
+        //private var urlState: ListState[UrlViewCount] = _
+        // TODO: 使用MapState替换ListState
+        private var urlState: MapState[String, Long] = _
 
         override def open(parameters: Configuration): Unit = {
             super.open(parameters)
-            val urlStateDesc: ListStateDescriptor[UrlViewCount] =
-                new ListStateDescriptor[UrlViewCount]("urlState-state", classOf[UrlViewCount])
-            urlState = getRuntimeContext.getListState(urlStateDesc)
+            val urlStateDesc: MapStateDescriptor[String, Long] =
+                new MapStateDescriptor[String, Long]("urlState-state", classOf[String], classOf[Long])
+            urlState = getRuntimeContext.getMapState(urlStateDesc)
         }
 
         override def processElement(i: UrlViewCount,
                                     context: KeyedProcessFunction[Long, UrlViewCount, String]#Context,
                                     collector: Collector[String]): Unit = {
             //每条数据都保存到状态中
-            urlState.add(i)
+            urlState.put(i.url, i.count)
             //设置定时器
             context.timerService.registerEventTimeTimer(i.windowEnd + 1)
         }
@@ -98,13 +103,18 @@ object NetworkFlow {
                              ctx: KeyedProcessFunction[Long, UrlViewCount, String]#OnTimerContext,
                              out: Collector[String]): Unit = {
             //获取收到的所有Url访问量
-            val allUrlViews: ListBuffer[UrlViewCount] = ListBuffer()
-            import scala.collection.JavaConversions._
-            for (urlView <- urlState.get)
-                allUrlViews += urlView
-            urlState.clear()
-            val sortedUrlViews: ListBuffer[UrlViewCount] =
-                allUrlViews.sortBy(_.count)(Ordering.Long.reverse).take(topSize)
+            val allUrlViews: ListBuffer[(String, Long)] = ListBuffer()
+            //            import scala.collection.JavaConversions._
+            //            for (urlView <- urlState.get)
+            //                allUrlViews += urlView
+            //            urlState.clear()
+            val iter: util.Iterator[util.Map.Entry[String, Long]] = urlState.entries().iterator()
+            while (iter.hasNext) {
+                val entry: util.Map.Entry[String, Long] = iter.next()
+                allUrlViews += ((entry.getKey, entry.getValue))
+            }
+            val sortedUrlViews: ListBuffer[(String, Long)] =
+                allUrlViews.sortBy(_._2)(Ordering.Long.reverse).take(topSize)
             //allUrlViews.sortWith(_.count > _.count).take(topSize)
 
             val result: StringBuilder = new StringBuilder
@@ -113,14 +123,14 @@ object NetworkFlow {
                 .append(new Timestamp(timestamp - 1))
                 .append("\n")
             for (elem <- sortedUrlViews.indices) {
-                val currentUrlView: UrlViewCount = sortedUrlViews(elem)
+                val currentUrlView: (String, Long) = sortedUrlViews(elem)
                 result.append("No")
                     .append(elem + 1)
                     .append(":")
                     .append(" URL=")
-                    .append(currentUrlView.url)
+                    .append(currentUrlView._1)
                     .append(" 流量=")
-                    .append(currentUrlView.count)
+                    .append(currentUrlView._2)
                     .append("\n")
             }
             result.append("====================================\n\n")

@@ -26,7 +26,7 @@ object AppMarketingStatistics {
 
         stream
             .filter(_.behavior != "UNINSTALL")
-            .map(data => {
+            .map(_ => {
                 ("dummyKey", 1L)
             })
             .keyBy(_._1)

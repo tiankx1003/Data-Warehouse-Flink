@@ -15,7 +15,11 @@ import org.apache.flink.streaming.api.scala._
  * @date 2019/10/25 10:48
  * @version 1.0.0
  */
-case class UserBehavior(userId: Long, itemId: Long, categoryId: Int, behavior: String, timestamp: Long)
+case class UserBehavior(userId: Long,
+                        itemId: Long,
+                        categoryId: Int,
+                        behavior: String,
+                        timestamp: Long)
 
 object PageView {
     def main(args: Array[String]): Unit = {
