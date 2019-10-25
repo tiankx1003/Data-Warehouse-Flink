@@ -15,7 +15,7 @@ import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironm
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
-
+import org.apache.flink.streaming.api.scala._
 import scala.collection.mutable.ListBuffer
 import scala.util.matching.Regex
 
@@ -31,7 +31,7 @@ object NetworkFlow {
         val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
         env.setParallelism(8)
-        val fileData: DataStream[String] = env.readTextFile("file/apache.log")
+        val fileData: DataStream[String] = env.readTextFile("files/apache.log")
         val logData: DataStream[ApacheLogEvent] = fileData.map(line => {
             val lineArr: Array[String] = line.split(" ")
             val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/MM/yyyy:HH:mm:ss")
@@ -105,6 +105,7 @@ object NetworkFlow {
             urlState.clear()
             val sortedUrlViews: ListBuffer[UrlViewCount] =
                 allUrlViews.sortBy(_.count)(Ordering.Long.reverse).take(topSize)
+            //allUrlViews.sortWith(_.count > _.count).take(topSize)
 
             val result: StringBuilder = new StringBuilder
             result.append("====================================\n")
