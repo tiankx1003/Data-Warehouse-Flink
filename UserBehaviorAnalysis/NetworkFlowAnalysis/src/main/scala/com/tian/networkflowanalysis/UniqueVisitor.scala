@@ -42,7 +42,7 @@ class UvCountByWindow extends AllWindowFunction[UserBehavior, UvCount, TimeWindo
                        out: Collector[UvCount]): Unit = {
 
         val s: collection.mutable.Set[Long] = collection.mutable.Set()
-        var idSet = Set[Long]()
+        var idSet: Set[Long] = Set[Long]()
 
         for ( userBehavior <- input) {
             idSet += userBehavior.userId
