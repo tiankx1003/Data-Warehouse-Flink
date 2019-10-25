@@ -14,6 +14,8 @@ import org.apache.flink.util.Collector
 import redis.clients.jedis.Jedis
 
 /**
+ * 使用布隆过滤器的独立访客数统计
+ *
  * @author tian
  * @date 2019/10/25 11:44
  * @version 1.0.0
@@ -47,18 +49,26 @@ object UvWithBloomFilter {
 // 自定义触发器
 class MyTrigger() extends Trigger[(String, Long), TimeWindow] {
 
-    override def onEventTime(time: Long, window: TimeWindow, ctx: Trigger.TriggerContext): TriggerResult = {
+    override def onEventTime(time: Long,
+                             window: TimeWindow,
+                             ctx: Trigger.TriggerContext): TriggerResult = {
         TriggerResult.CONTINUE
     }
 
-    override def onProcessingTime(time: Long, window: TimeWindow, ctx: Trigger.TriggerContext): TriggerResult = {
+    override def onProcessingTime(time: Long,
+                                  window: TimeWindow,
+                                  ctx: Trigger.TriggerContext): TriggerResult = {
         TriggerResult.CONTINUE
     }
 
-    override def clear(window: TimeWindow, ctx: Trigger.TriggerContext): Unit = {
+    override def clear(window: TimeWindow,
+                       ctx: Trigger.TriggerContext): Unit = {
     }
 
-    override def onElement(element: (String, Long), timestamp: Long, window: TimeWindow, ctx: Trigger.TriggerContext): TriggerResult = {
+    override def onElement(element: (String, Long),
+                           timestamp: Long,
+                           window: TimeWindow,
+                           ctx: Trigger.TriggerContext): TriggerResult = {
         // 每来一条数据，就触发窗口操作并清空
         TriggerResult.FIRE_AND_PURGE
     }

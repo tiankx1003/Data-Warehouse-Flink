@@ -46,7 +46,7 @@ object NetworkFlow {
                 new BoundedOutOfOrdernessTimestampExtractor[ApacheLogEvent](Time.milliseconds(1000)) {
                     override def extractTimestamp(t: ApacheLogEvent): Long = t.eventTime
                 })
-            .filter(data => { // TODO: ???
+            .filter(data => {
                 val pattern: Regex = "^((?!\\.(css|js)$).)*$".r
                 (pattern findFirstIn data.url).nonEmpty
             })

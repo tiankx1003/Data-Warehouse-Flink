@@ -7,7 +7,10 @@ import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.scala.function.AllWindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
+
 /**
+ * 独立访客数统计
+ *
  * @author tian
  * @date 2019/10/25 10:49
  * @version 1.0.0
@@ -44,7 +47,7 @@ class UvCountByWindow extends AllWindowFunction[UserBehavior, UvCount, TimeWindo
         val s: collection.mutable.Set[Long] = collection.mutable.Set()
         var idSet: Set[Long] = Set[Long]()
 
-        for ( userBehavior <- input) {
+        for (userBehavior <- input) {
             idSet += userBehavior.userId
         }
 
