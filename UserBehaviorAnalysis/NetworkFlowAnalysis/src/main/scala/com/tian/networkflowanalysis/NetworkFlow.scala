@@ -20,6 +20,8 @@ import org.apache.flink.util.Collector
 import scala.collection.mutable.ListBuffer
 
 /**
+ * 实时流量统计
+ * 
  * @author tian
  * @date 2019/10/24 11:42
  * @version 1.0.0
@@ -42,8 +44,7 @@ object NetworkFlow{
                 val timestamp: Long = simpleDateFormat.parse(linearray(3)).getTime
                 ApacheLogEvent(linearray(0), linearray(2), timestamp, linearray(5), linearray(6))
             })
-            .assignTimestampsAndWatermarks(new
-                    BoundedOutOfOrdernessTimestampExtractor[ApacheLogEvent]
+            .assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor[ApacheLogEvent]
                     (Time.milliseconds(1000)) {
                 override def extractTimestamp(t: ApacheLogEvent): Long = {
                     t.eventTime

@@ -1,4 +1,4 @@
-package com.tian.hotitemsanalysis
+package com.tian.hotitemsanalysis.app
 
 import java.util.Properties
 
