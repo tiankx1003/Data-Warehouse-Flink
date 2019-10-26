@@ -33,18 +33,19 @@ object AppMarketingByChannel {
         resultData.print()
         env.execute("app marketing by channel job")
     }
+    class MarketingCountByChannel() extends
+        ProcessWindowFunction[((String, String), Long), MarketingViewCount, (String, String), TimeWindow] {
+        override def process(key: (String, String),
+                             context: Context,
+                             elements: Iterable[((String, String), Long)],
+                             out: Collector[MarketingViewCount]): Unit = {
+            val startTs: Timestamp = new Timestamp(context.window.getStart)
+            val channel: String = key._1
+            val behavior: String = key._2
+            val count: Int = elements.size
+            out.collect(MarketingViewCount(startTs.toString, channel, behavior, count))
+        }
+    }
+
 }
 
-class MarketingCountByChannel() extends
-    ProcessWindowFunction[((String, String), Long), MarketingViewCount, (String, String), TimeWindow] {
-    override def process(key: (String, String),
-                         context: Context,
-                         elements: Iterable[((String, String), Long)],
-                         out: Collector[MarketingViewCount]): Unit = {
-        val startTs: Timestamp = new Timestamp(context.window.getStart)
-        val channel: String = key._1
-        val behavior: String = key._2
-        val count: Int = elements.size
-        out.collect(MarketingViewCount(startTs.toString, channel, behavior, count))
-    }
-}
