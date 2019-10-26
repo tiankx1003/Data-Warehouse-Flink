@@ -30,13 +30,13 @@ object LoginFail {
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
         env.setParallelism(1)
 
-        val loginEventStream: DataStreamSink[LoginEvent] = env.readTextFile("YOUR_PATH\\resources\\LoginLog.csv")
+        val loginEventStream: DataStream[LoginEvent] = env.readTextFile("YOUR_PATH\\resources\\LoginLog.csv")
             .map(data => {
-                val dataArray = data.split(",")
+                val dataArray: Array[String] = data.split(",")
                 LoginEvent(dataArray(0).toLong, dataArray(1), dataArray(2), dataArray(3).toLong)
             })
             .assignTimestampsAndWatermarks(new
-                    BoundedOutOfOrdernessTimestampExtractor[LoginEvent] //ApacheLogEvent
+                    BoundedOutOfOrdernessTimestampExtractor[LoginEvent]
                     (Time.milliseconds(3000)) {
                 override def extractTimestamp(element: LoginEvent): Long = {
                     element.eventTime * 1000L
@@ -44,7 +44,7 @@ object LoginFail {
             })
             .keyBy(_.userId)
             .process(new MatchFunction())
-            .print()
+        loginEventStream.print()
 
         env.execute("Login Fail Detect Job")
     }
