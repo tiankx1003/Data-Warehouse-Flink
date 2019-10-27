@@ -11,6 +11,8 @@ import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
 
+
+//git
 /**
  * @author tian
  * @date 2019/10/26 8:56
@@ -24,7 +26,7 @@ object AppMarketingByChannel {
 
         val sourceData: DataStream[MarketingUserBehavior] = env.addSource(new SimulatedEventSource)
             .assignAscendingTimestamps(_.ts)
-        val resultData = sourceData
+        val resultData: DataStream[MarketingViewCount] = sourceData
             .filter(_.behavior != "UNINSTALL")
             .map(data => ((data.channel, data.behavior), 1L))
             .keyBy(_._1)
