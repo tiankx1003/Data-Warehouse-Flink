@@ -37,11 +37,10 @@ object OrderTimeout {
         val patternStream: PatternStream[OrderEvent] =
             CEP.pattern(orderEventStream.keyBy("orderId"), orderPayPattern)
 
-        // TODO: require scala.collection.Map found scala.Predef.Map
-        val completedResult = patternStream.select(orderTimeoutOutput) {
+        val completedResult: DataStream[OrderResult] = patternStream.select(orderTimeoutOutput) {
             // 对于已超时的部分模式匹配的事件序列，会调用这个函数
             (pattern: scala.collection.Map[String, Iterable[OrderEvent]], timestamp: Long) => {
-                val createOrder = pattern.get("begin")
+                val createOrder: Option[Iterable[OrderEvent]] = pattern.get("begin")
                 OrderResult(createOrder.get.iterator.next().orderId, "timeout")
             }
         } {

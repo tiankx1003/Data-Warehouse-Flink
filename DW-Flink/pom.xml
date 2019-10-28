@@ -13,6 +13,7 @@
         <module>NetworkFlowAnalysis</module>
         <module>MarketAnalysis</module>
         <module>LoginFailDetect</module>
+        <module>OrderTimeoutDetect</module>
     </modules>
     <!-- 定义版本信息 -->
     <properties>
