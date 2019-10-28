@@ -28,8 +28,10 @@ object OrderTimeoutWithoutCep {
             })
             .assignAscendingTimestamps(_.eventTime * 1000L)
             .keyBy(_.orderId)
-        val timeoutData: DataStream[OrderResult] = orderEventStream.process(new OrderTimeoutAlert)
+        val timeoutData: DataStream[OrderResult] = //orderEventStream.process(new OrderTimeoutAlert)
+            orderEventStream.process(new OrderPayMatch)
         timeoutData.print()
+        timeoutData.getSideOutput(orderTimeoutOutputTag).print()
         env.execute()
     }
 
@@ -76,7 +78,7 @@ object OrderTimeoutWithoutCep {
                     isPayedState.clear()
                     timerState.clear()
                 } else {
-                    val ts = value.eventTime * 1000L + 15 * 60 * 1000L
+                    val ts: Long = value.eventTime * 1000L + 15 * 60 * 1000L
                     ctx.timerService().registerEventTimeTimer(ts)
                     timerState.update(ts)
                 }
@@ -102,7 +104,7 @@ object OrderTimeoutWithoutCep {
                              out: Collector[OrderResult]): Unit = {
             if (isPayedState.value() && timerState.value() == timestamp)
                 ctx.output(orderTimeoutOutputTag, OrderResult(ctx.getCurrentKey, "already payed but not create"))
-            else if(!isPayedState.value())
+            else if (!isPayedState.value())
                 ctx.output(orderTimeoutOutputTag, OrderResult(ctx.getCurrentKey, "order timeout"))
         }
 
